@@ -230,7 +230,7 @@ Public Class Form1
                     'Table Headers
                 Else
                     MetroTextBox1.Text = linecontent(0)
-                    MetroTextBox2.Text = linecontent(3)
+                    MetroTextBox2.Text = linecontent(4)
                     If MetroTextBox2.Text = "" Then
 
                     Else
@@ -367,42 +367,19 @@ Public Class Form1
             'Make JSON Request
             Dim webClient As New System.Net.WebClient
             Dim result As String = webClient.DownloadString("http://ms-vnext.net/Win10esds/api/v1/?token=d54aaff4-bbe0-4b18-aec3-2235175514cc&columns=fileName,sha1&orderBy=fileName&orderDir=DESC&limit=" & ESDLimit)
-            'Remove crap from the beginning
-            Dim numberofc As Integer = 0
-            Dim currentchar As Integer = 1
-            While numberofc = 0
-                If result(currentchar) = "{" Then
-                    numberofc = 1
-                Else
-                    currentchar += 1
-                End If
-            End While
-            result = result.Remove(0, currentchar)
+            Dim esds As New ESD_Data
+            esds = JsonConvert.DeserializeObject(Of ESD_Data)(result)
             'Get info from JSON
-            Dim jsoning As String = result.Replace("[", "")
-            jsoning = jsoning.Replace("]", "")
-            Dim jsonsplit As String() = jsoning.Split("{")
-            Dim maxindex As Integer = jsonsplit.Length
-            Dim currentindex As Integer = 1
-            While currentindex < maxindex
-                Dim obj As JSON_result
-                If currentindex = maxindex - 1 Then
-                    obj = JsonConvert.DeserializeObject(Of JSON_result)("{" & jsonsplit(currentindex).Remove(jsonsplit(currentindex).Length - 1, 1))
-
-                Else
-                    obj = JsonConvert.DeserializeObject(Of JSON_result)("{" & jsonsplit(currentindex).Remove(jsonsplit(currentindex).Length - 2, 2) & "}")
-                End If
-                MetroTextBox1.Text = obj.FileName
-                MetroTextBox2.Text = obj.SHA1
+            For i As Integer = 0 To (esds.filteredRecords - 1)
+                MetroTextBox1.Text = esds.data(i).fileName
+                MetroTextBox2.Text = esds.data(i).sha1
                 If AutoChecking = True Then
                     MetroButton6_Click(Nothing, Nothing)
                 End If
-                currentindex += 1
-            End While
+            Next
         Catch ex As Exception
             MessageBox.Show("Critical Error: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
-
     End Sub
 
     Private Sub ModifyQuantityToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ModifyQuantityToolStripMenuItem.Click
@@ -416,7 +393,13 @@ Public Class Form1
     End Sub
 End Class
 
-Public Class JSON_result
-    Public FileName As String
-    Public SHA1 As String
+Public Class ESD_Data
+    Public totalRecords As Integer
+    Public filteredRecords As Integer
+    Public data As List(Of ESD_File)
+End Class
+
+Public Class ESD_File
+    Public fileName As String
+    Public sha1 As String
 End Class
